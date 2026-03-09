@@ -11,7 +11,7 @@ const extractRoutes = require('./routes/extract');
 const app = express();
 
 // ── Middleware ──────────────────────────────────────────────
-app.use(express.json({ limit: '10mb' })); // 10mb for CV base64
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cors({
@@ -19,8 +19,6 @@ app.use(cors({
     process.env.FRONTEND_URL || 'http://localhost:5173',
     'http://localhost:5173',
     'http://localhost:3000',
-    // Add your Vercel URL here after deploy:
-    // 'https://applytrack.vercel.app'
   ],
   credentials: true,
 }));
@@ -61,6 +59,16 @@ mongoose
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`   Health: http://localhost:${PORT}/health`);
+
+      // Keep alive - prevent Render free tier from sleeping
+      if (process.env.NODE_ENV === 'production' && process.env.RENDER_URL) {
+        setInterval(async () => {
+          try {
+            await fetch(`${process.env.RENDER_URL}/health`);
+            console.log('💓 Keep alive ping sent');
+          } catch {}
+        }, 14 * 60 * 1000);
+      }
     });
   })
   .catch(err => {
